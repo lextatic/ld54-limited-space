@@ -8,7 +8,9 @@
 /[Bb]uild/
 /[Bb]uilds/
 /[Ll]ogs/
+/[Uu]nity[Gg]enerated/
 /[Uu]ser[Ss]ettings/
+*.stackdump
 
 # MemoryCaptures can get excessive in size.
 # They also could contain extremely sensitive data
