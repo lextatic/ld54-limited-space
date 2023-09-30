@@ -10,15 +10,17 @@ public class Item : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHand
 
 	public ItemType Type;
 
-	public bool[,] Shape;
+	public bool[,] Shape = new bool[2,2] { { false, true }, { true, false } };
 
-	public Vector2 Pivot;
+	public Vector2Int Pivot;
 
 	public Image ItemImage;
 
 	private bool _dragging;
 
 	public Vector2 PositionBeforeDrag;
+
+	public BagSlot InSlot;
 
 	private void Awake()
 	{
@@ -29,7 +31,7 @@ public class Item : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHand
 
 		ItemImage.rectTransform.pivot = new Vector2(
 			((65f / 2) + (65f * Pivot.x)) / ItemImage.rectTransform.rect.width,
-			((65f / 2) + (65f * Pivot.y)) / ItemImage.rectTransform.rect.height);
+			1 - ((65f / 2) + (65f * Pivot.y)) / ItemImage.rectTransform.rect.height);
 
 		_dragging = false;
 	}

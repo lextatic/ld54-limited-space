@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,6 +10,8 @@ public class BagSlot : MonoBehaviour, IDropHandler
 	public Image SlotImage;
 
 	public bool Empty;
+
+	public event Action<BagSlot, Item> OnItemDropped;
 
 	private void Awake()
 	{
@@ -33,10 +36,7 @@ public class BagSlot : MonoBehaviour, IDropHandler
 	public void OnDrop(PointerEventData eventData)
 	{
 		var droppedItem = eventData.pointerDrag;
-		if (droppedItem != null)
-		{
-			var item = droppedItem.GetComponent<Item>();
-			item.PositionBeforeDrag = transform.position;
-		}
+		var item = droppedItem.GetComponent<Item>();
+		OnItemDropped.Invoke(this, item);
 	}
 }
