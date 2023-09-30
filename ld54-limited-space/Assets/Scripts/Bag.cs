@@ -5,59 +5,81 @@ public class Bag : MonoBehaviour
 {
 	public int Columns = 8;
 
-	public List<BagSlot> Slots;
+	public List<BagSlot> BagSlots;
+	public List<EquipSlot> EquipSlots;
 	public ItemSwapArea SwapArea;
 
 	private void Awake()
 	{
-		foreach (var slot in Slots)
+		foreach (var bagSlot in BagSlots)
 		{
-			slot.OnItemDroppedOnBagSlot += Slot_OnItemDropped;
+			bagSlot.OnItemDroppedOnBagSlot += Slot_OnItemDropped;
+		}
+
+		foreach (var equipSlot in EquipSlots)
+		{
+			equipSlot.OnItemDroppedOnEquipSlot += EquipSlot_OnItemDroppedOnEquipSlot;
 		}
 
 		SwapArea.OnItemDroppedOnItemSwapArea += SwapArea_OnItemDroppedOnItemSwapArea;
 	}
 
+	private void EquipSlot_OnItemDroppedOnEquipSlot(EquipSlot equipSlot, Item item)
+	{
+		if (ValidateEquipType(equipSlot, item))
+		{
+			RemoveFromPreviousSlots(item);
+
+			equipSlot.Toggle();
+
+			item.MoveToEquipSlot(equipSlot);
+		}
+	}
+
 	private void SwapArea_OnItemDroppedOnItemSwapArea(Item item)
 	{
-		if (item.InSlot)
-		{
-			ToggleItemSlots(item.InSlot, item, true);
-		}
+		RemoveFromPreviousSlots(item);
 
 		item.MoveToSwapArea();
 	}
 
-	private void Slot_OnItemDropped(BagSlot slot, Item item)
+	private void Slot_OnItemDropped(BagSlot bagSlot, Item item)
 	{
-		if (ValidateItemSpace(slot, item))
+		if (ValidateItemSpace(bagSlot, item))
 		{
-			if (item.InSlot)
-			{
-				ToggleItemSlots(item.InSlot, item, true);
-			}
+			RemoveFromPreviousSlots(item);
 
-			ToggleItemSlots(slot, item);
+			ToggleItemSlots(bagSlot, item);
 
-			item.MoveToSlot(slot);
+			item.MoveToBagSlot(bagSlot);
 		}
 	}
 
-	private bool ValidateItemSpace(BagSlot slot, Item item)
+	private void RemoveFromPreviousSlots(Item item)
 	{
-		var slots = new bool[Slots.Count];
-
-		for (int i = 0; i < Slots.Count; i++)
+		if (item.CurrentBagSlot)
 		{
-			slots[i] = Slots[i].Empty;
+			ToggleItemSlots(item.CurrentBagSlot, item, true);
 		}
 
-		if (item.InSlot)
+		item.CurrentEquipSlot?.Toggle();
+	}
+
+	private bool ValidateItemSpace(BagSlot bagSlot, Item item)
+	{
+		var bagSlots = new bool[BagSlots.Count];
+
+		for (int i = 0; i < BagSlots.Count; i++)
 		{
-			ToggleMatyricSlots(item.InSlot, item, slots, true);
+			bagSlots[i] = BagSlots[i].Empty;
 		}
 
-		var slotIndex = Slots.IndexOf(slot);
+		if (item.CurrentBagSlot)
+		{
+			ToggleMatyricSlots(item.CurrentBagSlot, item, bagSlots, true);
+		}
+
+		var slotIndex = BagSlots.IndexOf(bagSlot);
 
 		for (int x = 0; x < item.ShapeMatrix.GetLength(1); x++)
 		{
@@ -68,7 +90,7 @@ public class Bag : MonoBehaviour
 					var slotX = slotIndex % 8;
 					var slotY = slotIndex / 8;
 
-					if (!IsValid(slotX + x - item.Pivot.x, slotY + y - item.Pivot.y, slots))
+					if (!IsValid(slotX + x - item.Pivot.x, slotY + y - item.Pivot.y, bagSlots))
 					{
 						return false;
 					}
@@ -99,7 +121,7 @@ public class Bag : MonoBehaviour
 		var shape = unrotated ? item.UnrotatedShape : item.ShapeMatrix;
 		var pivot = unrotated ? item.UnrotatedPivot : item.Pivot;
 
-		var slotIndex = Slots.IndexOf(slot);
+		var slotIndex = BagSlots.IndexOf(slot);
 
 		for (int x = 0; x < shape.GetLength(1); x++)
 		{
@@ -110,18 +132,18 @@ public class Bag : MonoBehaviour
 					var slotX = slotIndex % 8;
 					var slotY = slotIndex / 8;
 
-					ToggleSlot(slotX + x - pivot.x, slotY + y - pivot.y);
+					ToggleBagSlot(slotX + x - pivot.x, slotY + y - pivot.y);
 				}
 			}
 		}
 	}
 
-	private void ToggleMatyricSlots(BagSlot slot, Item item, bool[] slots, bool unrotated = false)
+	private void ToggleMatyricSlots(BagSlot bagSlot, Item item, bool[] bagSlots, bool unrotated = false)
 	{
 		var shape = unrotated ? item.UnrotatedShape : item.ShapeMatrix;
 		var pivot = unrotated ? item.UnrotatedPivot : item.Pivot;
 
-		var slotIndex = Slots.IndexOf(slot);
+		var slotIndex = BagSlots.IndexOf(bagSlot);
 
 		for (int x = 0; x < shape.GetLength(1); x++)
 		{
@@ -132,14 +154,19 @@ public class Bag : MonoBehaviour
 					var slotX = slotIndex % 8;
 					var slotY = slotIndex / 8;
 
-					slots[slotX + x - pivot.x + (Columns * (slotY + y - pivot.y))] = !slots[slotX + x - pivot.x + (Columns * (slotY + y - pivot.y))];
+					bagSlots[slotX + x - pivot.x + (Columns * (slotY + y - pivot.y))] = !bagSlots[slotX + x - pivot.x + (Columns * (slotY + y - pivot.y))];
 				}
 			}
 		}
 	}
 
-	private void ToggleSlot(int x, int y)
+	private void ToggleBagSlot(int x, int y)
 	{
-		Slots[x + (Columns * y)].Toggle();
+		BagSlots[x + (Columns * y)].Toggle();
+	}
+
+	private bool ValidateEquipType(EquipSlot equipSlot, Item item)
+	{
+		return item.Type == equipSlot.ItemType;
 	}
 }

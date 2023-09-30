@@ -4,8 +4,7 @@ using Image = UnityEngine.UI.Image;
 
 public class Item : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-	[Header("Bag visual config")]
-	public float CellSize = 65;
+	private const float CellSize = 60;
 
 	[Header("Grid Config")]
 	public int Columns = 3;
@@ -17,18 +16,20 @@ public class Item : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHand
 	public int Value;
 	public ItemType Type;
 
-	[HideInInspector]
-	public BagSlot InSlot;
-
 	private Image _itemImage;
 	private bool _dragging;
 	private bool _movedToNewPosition;
 	private Vector2 _positionBeforeDrag;
 
+	private bool[,] _originalShapeMatrix;
+	private Vector2Int _originalPivot;
+
 	public bool[,] ShapeMatrix { get; private set; }
 	public bool[,] UnrotatedShape { get; private set; }
 	public Quaternion UnrotatedImageRotation { get; private set; }
 	public Vector2Int UnrotatedPivot { get; private set; }
+	public BagSlot CurrentBagSlot { get; private set; }
+	public EquipSlot CurrentEquipSlot { get; private set; }
 
 	private void Awake()
 	{
@@ -38,6 +39,9 @@ public class Item : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHand
 		_dragging = false;
 
 		_itemImage.alphaHitTestMinimumThreshold = 1f;
+
+		_originalShapeMatrix = ShapeMatrix;
+		_originalPivot = Pivot;
 	}
 
 	private void InitializeShapeMatrix()
@@ -99,17 +103,36 @@ public class Item : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHand
 		_itemImage.raycastTarget = true;
 	}
 
-	public void MoveToSlot(BagSlot newSlot)
+	public void MoveToBagSlot(BagSlot bagSlot)
 	{
-		_positionBeforeDrag = newSlot.transform.position;
-		InSlot = newSlot;
+		_positionBeforeDrag = bagSlot.transform.position;
+		CurrentBagSlot = bagSlot;
+		CurrentEquipSlot = null;
 		_movedToNewPosition = true;
 	}
 
 	public void MoveToSwapArea()
 	{
 		_positionBeforeDrag = Input.mousePosition;
-		InSlot = null;
+		CurrentBagSlot = null;
+		CurrentEquipSlot = null;
+		_movedToNewPosition = true;
+	}
+
+	public void MoveToEquipSlot(EquipSlot equipSlot)
+	{
+		ShapeMatrix = _originalShapeMatrix;
+		Pivot = _originalPivot;
+		_itemImage.rectTransform.rotation = Quaternion.identity;
+
+		_positionBeforeDrag = equipSlot.transform.position +
+			new Vector3(
+				-(CellSize * ShapeMatrix.GetLength(1) / 2) + (CellSize / 2) + (CellSize * Pivot.x),
+				(CellSize * ShapeMatrix.GetLength(0) / 2) - (CellSize / 2) + (CellSize * Pivot.y),
+				0
+			);
+		CurrentBagSlot = null;
+		CurrentEquipSlot = equipSlot;
 		_movedToNewPosition = true;
 	}
 

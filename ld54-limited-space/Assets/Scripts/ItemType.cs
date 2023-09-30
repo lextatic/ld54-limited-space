@@ -1,15 +1,10 @@
 ﻿public enum ItemType
 {
-	Weapon,
-	OffHand,
-	Chest,
+	Trash,
+	Consumable,
 	Head,
-	Hands,
-	Pants,
-	Boots,
+	Chest,
+	Hand,
 	Ring,
-	Necklace,
-	Rune,
-	Gem,
-	Consumable
+	Charm
 }
