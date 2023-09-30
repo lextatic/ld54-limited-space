@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class Bag : MonoBehaviour
 {
-	public int Columns = 8;
+	private const int Columns = 8;
+
 	public List<BagSlot> Slots;
 
 	private void Awake()
@@ -19,16 +19,14 @@ public class Bag : MonoBehaviour
 	{
 		if (ValidateItemSpace(slot, item))
 		{
-			if (item.InSlot) 
+			if (item.InSlot)
 			{
-				ToggleItemSlots(item.InSlot, item);
+				ToggleItemSlots(item.InSlot, item, true);
 			}
 
 			ToggleItemSlots(slot, item);
-			//item.InSlot?.Toggle();
-			//slot.Toggle();
-			item.PositionBeforeDrag = slot.transform.position;
-			item.InSlot = slot;
+
+			item.MoveToSlot(slot);
 		}
 	}
 
@@ -36,11 +34,11 @@ public class Bag : MonoBehaviour
 	{
 		var slotIndex = Slots.IndexOf(slot);
 
-		for(int x = 0; x < item.Shape.GetLength(0); x++)
+		for (int x = 0; x < item.Shape.GetLength(1); x++)
 		{
-			for (int y = 0; y < item.Shape.GetLength(1); y++)
+			for (int y = 0; y < item.Shape.GetLength(0); y++)
 			{
-				if (item.Shape[x, y])
+				if (item.Shape[y, x])
 				{
 					var slotX = slotIndex % 8;
 					var slotY = slotIndex / 8;
@@ -71,20 +69,23 @@ public class Bag : MonoBehaviour
 		return true;
 	}
 
-	private void ToggleItemSlots(BagSlot slot, Item item)
+	private void ToggleItemSlots(BagSlot slot, Item item, bool unrotated = false)
 	{
+		var shape = unrotated ? item.UnrotatedShape : item.Shape;
+		var pivot = unrotated ? item.UnrotatedPivot : item.Pivot;
+
 		var slotIndex = Slots.IndexOf(slot);
 
-		for (int x = 0; x < item.Shape.GetLength(0); x++)
+		for (int x = 0; x < shape.GetLength(1); x++)
 		{
-			for (int y = 0; y < item.Shape.GetLength(1); y++)
+			for (int y = 0; y < shape.GetLength(0); y++)
 			{
-				if (item.Shape[x, y])
+				if (shape[y, x])
 				{
 					var slotX = slotIndex % 8;
 					var slotY = slotIndex / 8;
 
-					ToggleSlot(slotX + x - item.Pivot.x, slotY + y - item.Pivot.y);
+					ToggleSlot(slotX + x - pivot.x, slotY + y - pivot.y);
 				}
 			}
 		}

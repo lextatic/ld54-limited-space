@@ -2510,9 +2510,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Value: 0
   Type: 0
-  Pivot: {x: 0, y: 0}
+  Pivot: {x: 2, y: 1}
+  UnrotatedPivot: {x: 0, y: 0}
   ItemImage: {fileID: 0}
+  UnrotatedImageRotation: {x: 0, y: 0, z: 0, w: 0}
   PositionBeforeDrag: {x: 0, y: 0}
+  InSlot: {fileID: 0}
 --- !u!114 &1075612420
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4359,6 +4362,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1aa84bdde24640a4493846bd3594dcad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Columns: 8
   Slots:
   - {fileID: 1133661400}
   - {fileID: 1265572114}
