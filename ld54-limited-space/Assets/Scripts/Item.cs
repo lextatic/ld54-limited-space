@@ -4,54 +4,78 @@ using Image = UnityEngine.UI.Image;
 
 public class Item : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-	private const int Columns = 3;
-	private const int Rows = 2;
-	private const float CellSize = 65;
+	[Header("Bag visual config")]
+	public float CellSize = 65;
 
+	[Header("Grid Config")]
+	public int Columns = 3;
+	public int Rows = 2;
+	public Vector2Int Pivot;
+	public bool[] Shape;
+
+	[Header("Gameplay")]
 	public int Value;
-
 	public ItemType Type;
 
-	public bool[,] Shape = new bool[Rows, Columns] { { true, true, true }, { true, false, false } };
-	public bool[,] UnrotatedShape;
-
-	public Vector2Int Pivot;
-	public Vector2Int UnrotatedPivot;
-
-	public Image ItemImage;
-	public Quaternion UnrotatedImageRotation;
-
-	private bool _dragging;
-	private bool _movedToNewSlot;
-
-	public Vector2 PositionBeforeDrag;
-
+	[HideInInspector]
 	public BagSlot InSlot;
+
+	private Image _itemImage;
+	private bool _dragging;
+	private bool _movedToNewPosition;
+	private Vector2 _positionBeforeDrag;
+
+	public bool[,] ShapeMatrix { get; private set; }
+	public bool[,] UnrotatedShape { get; private set; }
+	public Quaternion UnrotatedImageRotation { get; private set; }
+	public Vector2Int UnrotatedPivot { get; private set; }
 
 	private void Awake()
 	{
-		ItemImage = GetComponent<Image>();
-
-		ItemImage.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, CellSize * Shape.GetLength(1));
-		ItemImage.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, CellSize * Shape.GetLength(0));
-
-		ItemImage.rectTransform.pivot = new Vector2(
-			((CellSize / 2) + (CellSize * Pivot.x)) / ItemImage.rectTransform.rect.width,
-			1 - (((CellSize / 2) + (CellSize * Pivot.y)) / ItemImage.rectTransform.rect.height));
+		InitializeShapeMatrix();
+		InitializeImageSizeAndPivot();
 
 		_dragging = false;
+
+		_itemImage.alphaHitTestMinimumThreshold = 1f;
+	}
+
+	private void InitializeShapeMatrix()
+	{
+		ShapeMatrix = new bool[Rows, Columns];
+		int count = 0;
+		for (int x = 0; x < Rows; x++)
+		{
+			for (int y = 0; y < Columns; y++)
+			{
+				ShapeMatrix[x, y] = Shape[count];
+				count++;
+			}
+		}
+	}
+
+	private void InitializeImageSizeAndPivot()
+	{
+		_itemImage = GetComponent<Image>();
+
+		_itemImage.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, CellSize * ShapeMatrix.GetLength(1));
+		_itemImage.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, CellSize * ShapeMatrix.GetLength(0));
+
+		_itemImage.rectTransform.pivot = new Vector2(
+			((CellSize / 2) + (CellSize * Pivot.x)) / _itemImage.rectTransform.rect.width,
+			1 - (((CellSize / 2) + (CellSize * Pivot.y)) / _itemImage.rectTransform.rect.height));
 	}
 
 	public void OnBeginDrag(PointerEventData eventData)
 	{
 		_dragging = true;
-		_movedToNewSlot = false;
-		PositionBeforeDrag = transform.position;
-		ItemImage.raycastTarget = false;
+		_movedToNewPosition = false;
+		_positionBeforeDrag = transform.position;
+		_itemImage.raycastTarget = false;
 
-		UnrotatedShape = Shape;
+		UnrotatedShape = ShapeMatrix;
 		UnrotatedPivot = Pivot;
-		UnrotatedImageRotation = ItemImage.rectTransform.rotation;
+		UnrotatedImageRotation = _itemImage.rectTransform.rotation;
 	}
 
 	public void OnDrag(PointerEventData eventData)
@@ -63,31 +87,38 @@ public class Item : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHand
 	{
 		_dragging = false;
 
-		if (!_movedToNewSlot)
+		if (!_movedToNewPosition)
 		{
-			Shape = UnrotatedShape;
+			ShapeMatrix = UnrotatedShape;
 			Pivot = UnrotatedPivot;
-			ItemImage.rectTransform.rotation = UnrotatedImageRotation;
+			_itemImage.rectTransform.rotation = UnrotatedImageRotation;
 
 		}
 
-		transform.position = PositionBeforeDrag;
-		ItemImage.raycastTarget = true;
+		transform.position = _positionBeforeDrag;
+		_itemImage.raycastTarget = true;
 	}
 
 	public void MoveToSlot(BagSlot newSlot)
 	{
-		PositionBeforeDrag = newSlot.transform.position;
+		_positionBeforeDrag = newSlot.transform.position;
 		InSlot = newSlot;
-		_movedToNewSlot = true;
+		_movedToNewPosition = true;
+	}
+
+	public void MoveToSwapArea()
+	{
+		_positionBeforeDrag = Input.mousePosition;
+		InSlot = null;
+		_movedToNewPosition = true;
 	}
 
 	private void RotateCounterclockwise()
 	{
-		ItemImage.rectTransform.Rotate(0, 0, 90, Space.Self);
+		_itemImage.rectTransform.Rotate(0, 0, 90, Space.Self);
 
-		var rows = Shape.GetLength(0);
-		var columns = Shape.GetLength(1);
+		var rows = ShapeMatrix.GetLength(0);
+		var columns = ShapeMatrix.GetLength(1);
 
 		bool[,] rotatedMatrix = new bool[columns, rows];
 
@@ -95,11 +126,11 @@ public class Item : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHand
 		{
 			for (int j = 0; j < columns; j++)
 			{
-				rotatedMatrix[columns - 1 - j, i] = Shape[i, j];
+				rotatedMatrix[columns - 1 - j, i] = ShapeMatrix[i, j];
 			}
 		}
 
-		Shape = rotatedMatrix;
+		ShapeMatrix = rotatedMatrix;
 
 		int rotatedX = Pivot.y;
 		int rotatedY = columns - 1 - Pivot.x;
@@ -109,10 +140,10 @@ public class Item : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHand
 
 	private void RotateClockwise()
 	{
-		ItemImage.rectTransform.Rotate(0, 0, -90, Space.Self);
+		_itemImage.rectTransform.Rotate(0, 0, -90, Space.Self);
 
-		var rows = Shape.GetLength(0);
-		var columns = Shape.GetLength(1);
+		var rows = ShapeMatrix.GetLength(0);
+		var columns = ShapeMatrix.GetLength(1);
 
 		bool[,] rotatedMatrix = new bool[columns, rows];
 
@@ -120,11 +151,11 @@ public class Item : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHand
 		{
 			for (int j = 0; j < columns; j++)
 			{
-				rotatedMatrix[j, rows - 1 - i] = Shape[i, j];
+				rotatedMatrix[j, rows - 1 - i] = ShapeMatrix[i, j];
 			}
 		}
 
-		Shape = rotatedMatrix;
+		ShapeMatrix = rotatedMatrix;
 
 		int rotatedX = rows - 1 - Pivot.y;
 		int rotatedY = Pivot.x;
@@ -146,5 +177,10 @@ public class Item : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHand
 				RotateClockwise();
 			}
 		}
+	}
+
+	public void ToggleRaycastTarget(bool value)
+	{
+		_itemImage.raycastTarget = value;
 	}
 }

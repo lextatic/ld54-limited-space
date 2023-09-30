@@ -5,15 +5,14 @@ using UnityEngine.UI;
 
 public class BagSlot : MonoBehaviour, IDropHandler
 {
-	public Image SlotImage;
+	private Image _slotImage;
 
-	public bool Empty;
-
-	public event Action<BagSlot, Item> OnItemDropped;
+	public event Action<BagSlot, Item> OnItemDroppedOnBagSlot;
+	public bool Empty { get; private set; }
 
 	private void Awake()
 	{
-		SlotImage = GetComponent<Image>();
+		_slotImage = GetComponent<Image>();
 		Empty = true;
 	}
 
@@ -23,11 +22,11 @@ public class BagSlot : MonoBehaviour, IDropHandler
 
 		if (Empty)
 		{
-			SlotImage.color = Color.white;
+			_slotImage.color = Color.white;
 		}
 		else
 		{
-			SlotImage.color = Color.gray;
+			_slotImage.color = Color.gray;
 		}
 	}
 
@@ -35,6 +34,6 @@ public class BagSlot : MonoBehaviour, IDropHandler
 	{
 		var droppedItem = eventData.pointerDrag;
 		var item = droppedItem.GetComponent<Item>();
-		OnItemDropped.Invoke(this, item);
+		OnItemDroppedOnBagSlot.Invoke(this, item);
 	}
 }
